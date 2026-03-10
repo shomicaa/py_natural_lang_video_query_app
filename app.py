@@ -1,4 +1,6 @@
 from turtle import color
+import cv2
+import numpy as np
 import streamlit as st
 import requests
 from datetime import timedelta
@@ -74,6 +76,27 @@ def display_match(match: dict, index: int):
             f"""<div style="height: 4px; background: linear-gradient(90deg, {color} 0%, {color} {confidence*100}%, #e0e0e0 {confidence*100}%, #e0e0e0 100%); border-radius: 2px; margin-top: 8px"></div>""",
             unsafe_allow_html=True
         )
+
+        if confidence > 0.35:
+            display_frame_preview(match["timestamp"], match["id"])
+
+def display_frame_preview(timestamp: float, frame_id: str):
+    try:
+        response = requests.get(f"{BACKEND_URL}/frame/{frame_id}", timeout=5)
+        response.raise_for_status()
+
+        img_array = np.frombuffer(response.content, np.uint8)
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        st.image(
+            img_rgb,
+            caption=f"Timestamp: {format_timestamp(timestamp)}",
+            use_column_width=True
+        )
+    except Exception as e:
+        st.warning(f"Couldn't load frame: {str(e)}")
 
 def handle_upload(video_file):
     if not st.session_state.backend_online:

@@ -46,7 +46,14 @@ class VectorDB:
             include=["distances", "metadatas"]
         )
 
-        confidences = [min(1.0, 1 - d) for d in results["distances"][0]]
+        def calculate_confidence(distance):
+            similarity = 1 - distance
+            if similarity < 0.20: return similarity * 1.0  # 0-20% for similarities 0-0.2
+            elif similarity < 0.35: return 0.20 + (similarity - 0.20) * 4.0  # 20% to 80% for 0.2-0.35
+            elif similarity < 0.40: return 0.80 + (similarity - 0.35) * 4.0  # 80% to 100% for 0.35-0.4
+            else: return 1.0
+
+        confidences = [min(1.0, calculate_confidence(d)) for d in results["distances"][0]]
 
         return [
             SearchResult(
