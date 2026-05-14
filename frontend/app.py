@@ -1,4 +1,4 @@
-from turtle import color
+import os
 import cv2
 import numpy as np
 import streamlit as st
@@ -6,7 +6,7 @@ import requests
 from datetime import timedelta
 from typing import Optional
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 SUPPORTED_FORMATS = ["mp4", "avi", "mov"]
 MAX_FILE_SIZE_MB = 200
 VIDEO_PROCESSING_TIMEOUT = 300
@@ -61,7 +61,10 @@ def display_match(match: dict, index: int):
         (0.0, "❌ Unlikely", "#F44336")
     ]
 
-    title_text = next((text for threshold, text, _ in CONFIDENCE_LEVELS if confidence > threshold), "❌ Unlikely")
+    title_text, color = next(
+        ((text, col) for threshold, text, col in CONFIDENCE_LEVELS if confidence > threshold),
+        ("❌ Unlikely", "#F44336")
+    )
 
     plain_text = title_text.replace("✅ ", "").replace("✔️ ", "").replace("⚠️ ", "").replace("❌ ", "")
 

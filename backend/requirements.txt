@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+transformers
+chromadb
+numpy
+tqdm
+Pillow
+accelerate
+opencv-python-headless
