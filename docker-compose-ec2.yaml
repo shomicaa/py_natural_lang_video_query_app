@@ -1,0 +1,36 @@
+services:
+  backend:
+    image: 947557066006.dkr.ecr.eu-central-1.amazonaws.com/backend:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - storage:/app/storage
+    environment:
+      - S3_BUCKET_NAME=misavule-app-content
+      - AWS_DEFAULT_REGION=eu-central-1
+    restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /nlvq-app/backend
+        awslogs-region: eu-central-1
+        awslogs-create-group: "true"
+
+  frontend:
+    image: 947557066006.dkr.ecr.eu-central-1.amazonaws.com/frontend:latest
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /nlvq-app/frontend
+        awslogs-region: eu-central-1
+        awslogs-create-group: "true"
+
+volumes:
+  storage:

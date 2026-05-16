@@ -1,6 +1,11 @@
 import base64
 import os
+import json
+import uuid
 import logging
+from datetime import datetime, timezone
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import FastAPI, Response, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from core.processor import VideoProcessor
@@ -19,6 +24,23 @@ app.add_middleware(
 
 processor = VideoProcessor()
 db = VectorDB()
+
+S3_BUCKET = os.getenv("S3_BUCKET_NAME", "misavule-app-content")
+
+def save_query_to_s3(query: str, results):
+    if not S3_BUCKET:
+        return
+    try:
+        s3 = boto3.client("s3")
+        payload = {
+            "user_query": query,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "results": [{"id": r.id, "timestamp": r.timestamp, "score": round(r.score, 4)} for r in results]
+        }
+        key = f"queries/{datetime.now(timezone.utc).strftime('%Y-%m-%d')}/{uuid.uuid4()}.json"
+        s3.put_object(Bucket=S3_BUCKET, Key=key, Body=json.dumps(payload), ContentType="application/json")
+    except (BotoCoreError, ClientError) as e:
+        logger.error(f"S3 save failed: {e}")
 
 @app.get("/")
 async def health_check():
@@ -55,7 +77,9 @@ async def upload_video(file: UploadFile = File(...)):
 async def search_video(request: SearchRequest):
     try:
         embedding = processor.embedder.encode_text(request.prompt)
-        return SearchResponse(results=db.query(embedding))
+        results = db.query(embedding)
+        save_query_to_s3(request.prompt, results)
+        return SearchResponse(results=results)
     except Exception as e:
         logger.error(f"Search failed: {str(e)}")
         raise HTTPException(500, "Search failed")

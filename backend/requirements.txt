@@ -8,3 +8,4 @@ tqdm
 Pillow
 accelerate
 opencv-python-headless
+boto3
